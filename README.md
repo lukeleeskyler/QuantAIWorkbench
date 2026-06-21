@@ -1,0 +1,78 @@
+# Quant AI Workbench
+
+本地运行的“AI + 量化指标”多市场交易分析工作台。
+
+第一版只做四件事：
+
+1. 输入股票、指数或币种代码
+2. 展示行情和技术指标
+3. 生成 AI 或本地规则分析报告
+4. 展示关注列表、多时间段买卖观察信号，并保存历史报告
+
+## 启动
+
+macOS / Linux:
+
+```bash
+chmod +x run.sh
+./run.sh
+```
+
+Windows:
+
+```bat
+run.bat
+```
+
+打开浏览器访问：
+
+```text
+http://127.0.0.1:8787
+```
+
+如果 8787 被占用，终端会显示新的可用端口，例如 `http://127.0.0.1:8788`。
+
+## 示例代码
+
+- 美股：`AAPL`, `NVDA`, `SPY`
+- 港股：`0700.HK`
+- A 股：`600519`, `002859`, `300408`（也支持 `600519.SS`, `000001.SZ`）
+- 日股：`7203.T`
+- 英股：`AZN.L`
+- 加密资产：`BTC-USD`, `ETH-USD`
+
+## AI 配置
+
+不配置 API key 也可以生成本地规则报告。
+
+如果要接入大模型，直接打开项目里的 `api_keys.env`，把你使用的平台 key 填进去，保存后重新启动工具即可。
+
+OpenAI:
+
+```text
+OPENAI_API_KEY=你的 OpenAI key
+```
+
+DeepSeek:
+
+```text
+DEEPSEEK_API_KEY=你的 DeepSeek key
+```
+
+OpenRouter:
+
+```text
+OPENROUTER_API_KEY=你的 OpenRouter key
+```
+
+## 数据和存储
+
+- 行情数据来自 Yahoo Finance chart API
+- 报告保存在本地 `data/reports.sqlite3`
+- 关注股票保存在当前浏览器本地
+- 不自动下单，不连接券商账户
+- 买卖信号和多时间段信号仅用于研究观察，不构成交易指令
+
+## 免责声明
+
+本工具仅用于研究和信息分析，不构成投资建议、交易建议或自动交易指令。

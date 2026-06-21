@@ -1,0 +1,8 @@
+.env
+api_keys.env
+api_keys.local.env
+.DS_Store
+__pycache__/
+.pycache/
+data/*.sqlite3
+data/*.sqlite3-*

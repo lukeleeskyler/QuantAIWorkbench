@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Quant AI Workbench</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="mark">Q</div>
+          <div>
+            <h1>Quant AI Workbench</h1>
+            <p>多市场交易分析工作台</p>
+          </div>
+        </div>
+
+        <form id="symbolForm" class="search">
+          <label for="symbolInput">标的代码</label>
+          <div class="searchRow">
+            <input id="symbolInput" autocomplete="off" value="AAPL" placeholder="AAPL / 002859 / 0700.HK / BTC-USD" />
+            <button type="submit">分析</button>
+          </div>
+          <button type="button" id="addWatch" class="ghost fullButton">加入关注</button>
+        </form>
+
+        <div class="examples">
+          <button data-symbol="AAPL">AAPL</button>
+          <button data-symbol="0700.HK">0700.HK</button>
+          <button data-symbol="600519">600519</button>
+          <button data-symbol="002859">002859</button>
+          <button data-symbol="BTC-USD">BTC-USD</button>
+        </div>
+
+        <section class="history">
+          <div class="sectionHead">
+            <h2>历史报告</h2>
+            <button id="refreshReports" class="ghost">刷新</button>
+          </div>
+          <div id="historyList" class="historyList"></div>
+        </section>
+
+        <section class="history">
+          <div class="sectionHead">
+            <h2>关注股票</h2>
+            <button id="refreshWatch" class="ghost">刷新</button>
+          </div>
+          <div id="watchList" class="historyList"></div>
+        </section>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow" id="assetType">等待分析</p>
+            <h2 id="title">输入代码开始</h2>
+          </div>
+          <div class="status" id="statusText">本地运行 · 不自动下单</div>
+        </header>
+
+        <section class="metrics">
+          <div class="metric signalMetric" id="signalMetric">
+            <span>买卖信号</span>
+            <strong id="signalLabel">--</strong>
+          </div>
+          <div class="metric">
+            <span>最新价</span>
+            <strong id="price">--</strong>
+          </div>
+          <div class="metric">
+            <span>涨跌幅</span>
+            <strong id="change">--</strong>
+          </div>
+          <div class="metric">
+            <span>成交量</span>
+            <strong id="volume">--</strong>
+          </div>
+          <div class="metric">
+            <span>综合评分</span>
+            <strong id="overall">--</strong>
+          </div>
+        </section>
+
+        <section id="timeframeSignals" class="timeframeSignals">
+          <div class="emptyNews">完成分析后显示短线、波段和中线观察信号。</div>
+        </section>
+
+        <section class="workspace">
+          <div class="chartPanel">
+            <div class="panelHead">
+              <h3>K 线与均线</h3>
+              <div id="quoteDate" class="muted">--</div>
+            </div>
+            <div id="priceChart" class="chart"></div>
+            <div id="marketBrief" class="marketBrief"></div>
+          </div>
+
+          <div class="sidePanel">
+            <div class="scoreGrid">
+              <div>
+                <span>趋势</span>
+                <b id="scoreTrend">--</b>
+              </div>
+              <div>
+                <span>动量</span>
+                <b id="scoreMomentum">--</b>
+              </div>
+              <div>
+                <span>量能</span>
+                <b id="scoreVolume">--</b>
+              </div>
+              <div>
+                <span>风险</span>
+                <b id="scoreRisk">--</b>
+              </div>
+            </div>
+            <div class="indicatorList" id="indicatorList"></div>
+            <div id="signalDetail" class="signalDetail emptySignal">等待分析信号</div>
+          </div>
+        </section>
+
+        <section class="lowerGrid">
+          <div class="chartPanel">
+            <div class="panelHead">
+              <h3>RSI / MACD</h3>
+              <div class="muted">技术指标</div>
+            </div>
+            <div id="indicatorChart" class="chart small"></div>
+          </div>
+
+          <div class="reportPanel">
+            <div class="panelHead">
+              <h3>AI 分析报告</h3>
+              <button id="generateReport" disabled>生成并保存</button>
+            </div>
+            <div id="reportBody" class="reportBody empty">先输入代码并完成行情分析。</div>
+          </div>
+
+          <section class="newsPanel">
+            <div class="panelHead">
+              <h3>新闻资讯</h3>
+              <div class="muted" id="newsCount">等待分析</div>
+            </div>
+            <div id="newsList" class="newsList">
+              <div class="emptyNews">输入代码后显示相关市场新闻。</div>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+    <script src="/app.js"></script>
+  </body>
+</html>

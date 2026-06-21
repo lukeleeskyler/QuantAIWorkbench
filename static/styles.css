@@ -1,0 +1,635 @@
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --ink: #172026;
+  --muted: #6d7782;
+  --line: #dce2e8;
+  --accent: #0f766e;
+  --accent-dark: #115e59;
+  --green: #15803d;
+  --red: #b42318;
+  --blue: #2456a6;
+  --amber: #b7791f;
+  --shadow: 0 18px 45px rgba(24, 39, 54, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Microsoft YaHei", sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  border-radius: 7px;
+  padding: 10px 13px;
+  transition: 0.16s ease;
+}
+
+button:hover {
+  background: var(--accent-dark);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.sidebar {
+  border-right: 1px solid var(--line);
+  background: #eef3f3;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+  color: #fff;
+  font-weight: 800;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+.brand p,
+.eyebrow,
+.muted {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.search {
+  display: grid;
+  gap: 9px;
+}
+
+.search label {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.searchRow {
+  display: grid;
+  grid-template-columns: 1fr 72px;
+  gap: 8px;
+}
+
+input {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 10px 11px;
+  min-width: 0;
+  background: #fff;
+  color: var(--ink);
+}
+
+input:focus {
+  outline: 2px solid rgba(15, 118, 110, 0.18);
+  border-color: var(--accent);
+}
+
+.examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.examples button,
+.ghost {
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+}
+
+.examples button:hover,
+.ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+  background: #fff;
+}
+
+.fullButton {
+  width: 100%;
+}
+
+.history {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionHead,
+.panelHead,
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sectionHead h2,
+.panelHead h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.historyList {
+  display: grid;
+  gap: 9px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.historyItem {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  display: grid;
+  gap: 5px;
+}
+
+.historyItem strong {
+  font-size: 14px;
+}
+
+.historyItem p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.watchItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 58px;
+  gap: 8px;
+}
+
+.watchSymbol {
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.watchRemove {
+  padding-inline: 8px;
+}
+
+.main {
+  padding: 22px;
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.topbar {
+  min-height: 54px;
+}
+
+.topbar h2 {
+  margin: 2px 0 0;
+  font-size: 26px;
+  letter-spacing: 0;
+}
+
+.status {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 8px 10px;
+  color: var(--muted);
+  background: #fff;
+  font-size: 13px;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.timeframeSignals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.timeframeCard {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 13px;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.timeframeCard.bullish {
+  border-color: rgba(21, 128, 61, 0.32);
+}
+
+.timeframeCard.bearish {
+  border-color: rgba(180, 35, 24, 0.32);
+}
+
+.timeframeHead,
+.timeframeMetric {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.timeframeHead strong {
+  display: block;
+  font-size: 16px;
+}
+
+.timeframeHead span,
+.timeframeMetric,
+.timeframeCard p,
+.timeframeCard li {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.timeframeCard p,
+.timeframeCard ul {
+  margin: 0;
+}
+
+.timeframeCard ul {
+  padding-left: 18px;
+}
+
+.metric {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+
+.metric span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.metric strong {
+  display: block;
+  margin-top: 7px;
+  font-size: 24px;
+}
+
+.signalMetric.bullish {
+  border-color: rgba(21, 128, 61, 0.35);
+  background: #f0fdf4;
+}
+
+.signalMetric.neutral {
+  border-color: rgba(36, 86, 166, 0.3);
+  background: #f4f8ff;
+}
+
+.signalMetric.bearish {
+  border-color: rgba(180, 35, 24, 0.35);
+  background: #fff5f5;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(330px, 0.8fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.lowerGrid {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(360px, 1.1fr) minmax(300px, 0.9fr);
+  gap: 14px;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.chartPanel,
+.sidePanel,
+.reportPanel,
+.newsPanel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  box-shadow: var(--shadow);
+  min-width: 0;
+}
+
+.chart {
+  width: 100%;
+  height: 300px;
+  margin-top: 8px;
+}
+
+.chart.small {
+  height: 360px;
+}
+
+.marketBrief {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.briefItem {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  padding: 10px;
+  min-width: 0;
+}
+
+.briefItem span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.briefItem strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+.scoreGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.scoreGrid div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.scoreGrid span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.scoreGrid b {
+  display: block;
+  margin-top: 5px;
+  font-size: 22px;
+}
+
+.indicatorList {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.indicator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  padding: 8px 0;
+  gap: 12px;
+}
+
+.indicator span {
+  color: var(--muted);
+}
+
+.signalDetail {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  margin-top: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 9px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.signalDetail.emptySignal {
+  color: var(--muted);
+  text-align: center;
+}
+
+.signalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.signalBadge {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.signalBadge.bullish {
+  background: var(--green);
+}
+
+.signalBadge.neutral {
+  background: var(--blue);
+}
+
+.signalBadge.bearish {
+  background: var(--red);
+}
+
+.signalDetail ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.signalLevels {
+  color: var(--muted);
+}
+
+.reportBody {
+  margin-top: 12px;
+  display: grid;
+  gap: 13px;
+  font-size: 14px;
+  line-height: 1.65;
+  max-height: 360px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.reportBody.empty {
+  color: var(--muted);
+  min-height: 320px;
+  place-items: center;
+  text-align: center;
+}
+
+.newsList {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  max-height: 360px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.newsItem {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfcfd;
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.newsItem a {
+  color: var(--ink);
+  font-weight: 750;
+  text-decoration: none;
+  line-height: 1.4;
+}
+
+.newsItem a:hover {
+  color: var(--accent-dark);
+}
+
+.newsMeta {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.newsSummary,
+.emptyNews {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.emptyNews {
+  grid-column: 1 / -1;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 18px;
+  text-align: center;
+}
+
+.stance {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.stance.bullish {
+  background: var(--green);
+}
+
+.stance.neutral {
+  background: var(--blue);
+}
+
+.stance.bearish {
+  background: var(--red);
+}
+
+.reportBody h4 {
+  margin: 3px 0 0;
+  font-size: 14px;
+}
+
+.reportBody ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.positive {
+  color: var(--green);
+}
+
+.negative {
+  color: var(--red);
+}
+
+.warn {
+  color: var(--amber);
+}
+
+@media (max-width: 1100px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .workspace,
+  .lowerGrid,
+  .metrics,
+  .timeframeSignals,
+  .marketBrief,
+  .newsList {
+    grid-template-columns: 1fr;
+  }
+}
