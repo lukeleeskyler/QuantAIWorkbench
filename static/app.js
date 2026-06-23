@@ -64,6 +64,7 @@ function renderAnalysis(data) {
   $("change").className = pctClass(data.quote.change_pct);
   $("volume").textContent = fmtCompact(data.quote.volume);
   $("overall").textContent = fmt(data.scores.overall, 1);
+  renderDataWarnings(data.data_warnings || []);
   renderSignal(data.signal);
   renderTimeframeSignals(data.timeframe_signals || []);
   $("quoteDate").textContent = data.quote.date;
@@ -75,6 +76,12 @@ function renderAnalysis(data) {
   renderMarketBrief(data);
   renderNews(data.news || []);
   renderCharts(data);
+}
+
+function renderDataWarnings(warnings) {
+  const rows = toArray(warnings);
+  $("dataWarnings").hidden = !rows.length;
+  $("dataWarnings").innerHTML = rows.map((item) => `<div>${escapeHtml(item)}</div>`).join("");
 }
 
 function renderSignal(signal) {

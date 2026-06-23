@@ -208,8 +208,8 @@ def clean_series(raw: dict[str, Any]) -> dict[str, Any]:
                 "volume": value_at(quote.get("volume"), idx) or 0,
             }
         )
-    if len(rows) < 30:
-        raise RuntimeError("可用行情太少，无法计算指标")
+    if len(rows) < 2:
+        raise RuntimeError("可用行情太少，无法计算涨跌和指标")
     return {"meta": meta, "rows": rows}
 
 
@@ -336,7 +336,7 @@ def build_analysis(symbol: str) -> dict[str, Any]:
     vol20 = sma(volumes, 20)
     latest = rows[-1]
     close = float(latest["close"])
-    previous_close = float(rows[-2]["close"])
+    previous_close = float(rows[-2]["close"]) if len(rows) >= 2 else close
     change_pct = pct_change(close, previous_close) or 0.0
     perf_20 = pct_change(close, closes[-21] if len(closes) > 21 else None)
     perf_60 = pct_change(close, closes[-61] if len(closes) > 61 else None)
@@ -402,12 +402,14 @@ def build_analysis(symbol: str) -> dict[str, Any]:
             }
         )
     meta = cleaned["meta"]
+    warnings = build_data_warnings(symbol, meta, rows)
     return {
         "symbol": symbol,
         "asset_type": detect_asset_type(symbol),
         "name": meta.get("longName") or meta.get("shortName") or symbol,
         "currency": meta.get("currency") or "",
         "exchange": meta.get("exchangeName") or meta.get("fullExchangeName") or "",
+        "data_warnings": warnings,
         "quote": {
             "date": latest["date"],
             "price": close,
@@ -433,6 +435,26 @@ def build_analysis(symbol: str) -> dict[str, Any]:
         "scores": scores,
         "series": enriched_rows,
     }
+
+
+def build_data_warnings(symbol: str, meta: dict[str, Any], rows: list[dict[str, Any]]) -> list[str]:
+    warnings = []
+    exchange = meta.get("exchangeName") or meta.get("fullExchangeName") or ""
+    name = meta.get("longName") or meta.get("shortName") or symbol
+    if symbol.endswith("-USD") and exchange == "CCC":
+        warnings.append(
+            f"{symbol} 被行情源识别为加密资产/代币：{name}。如果要查询美股股票，请去掉 -USD，例如输入 SPCX。"
+        )
+    if len(rows) < 30:
+        warnings.append("该标的历史行情少于 30 根，K 线会展示已有数据，MA20/MA60/RSI/MACD 等指标可能为空或不稳定。")
+    try:
+        last_date = datetime.strptime(rows[-1]["date"], "%Y-%m-%d").date()
+        age_days = (datetime.now(timezone.utc).date() - last_date).days
+        if age_days > 7:
+            warnings.append(f"行情源最后一根 K 线停留在 {rows[-1]['date']}，可能是代码停牌、退市、映射错误或数据源未更新。")
+    except Exception:
+        pass
+    return warnings
 
 
 def statistics_like_daily_volatility(values: list[float]) -> float:

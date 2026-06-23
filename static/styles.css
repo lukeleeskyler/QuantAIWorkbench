@@ -339,6 +339,22 @@ input:focus {
   background: #fff5f5;
 }
 
+.dataWarnings {
+  border: 1px solid rgba(183, 121, 31, 0.35);
+  border-radius: 8px;
+  background: #fff8eb;
+  color: #7a4d00;
+  padding: 11px 13px;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.dataWarnings[hidden] {
+  display: none;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(330px, 0.8fr);
