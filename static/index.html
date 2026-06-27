@@ -46,7 +46,7 @@
         <section class="history">
           <div class="sectionHead">
             <h2>关注股票</h2>
-            <button id="refreshWatch" class="ghost">刷新</button>
+            <button id="scanWatch" class="ghost">扫描</button>
           </div>
           <div id="watchList" class="historyList"></div>
         </section>
@@ -85,6 +85,24 @@
         </section>
 
         <section id="dataWarnings" class="dataWarnings" hidden></section>
+
+        <section class="scannerPanel">
+          <div class="panelHead">
+            <h3>自选股雷达</h3>
+            <div class="scannerActions">
+              <select id="scanSort" aria-label="排序">
+                <option value="overall">综合评分</option>
+                <option value="change">涨跌幅</option>
+                <option value="risk">风险评分</option>
+                <option value="signal">信号强度</option>
+              </select>
+              <button id="scanWatchTop">扫描关注</button>
+            </div>
+          </div>
+          <div id="scanSummary" class="scanSummary">关注股票后，一键扫描信号变化。</div>
+          <div id="scanResults" class="scanResults"></div>
+          <div id="signalChanges" class="signalChanges"></div>
+        </section>
 
         <section id="timeframeSignals" class="timeframeSignals">
           <div class="emptyNews">完成分析后显示短线、波段和中线观察信号。</div>

@@ -303,9 +303,9 @@ def clamp(value: float, low: float = 0, high: float = 100) -> float:
     return max(low, min(high, value))
 
 
-def build_analysis(symbol: str) -> dict[str, Any]:
+def build_analysis(symbol: str, include_news: bool = True) -> dict[str, Any]:
     raw = fetch_yahoo_chart(symbol)
-    news = fetch_yahoo_news(symbol)
+    news = fetch_yahoo_news(symbol) if include_news else []
     cleaned = clean_series(raw)
     rows = cleaned["rows"]
     closes = [float(row["close"]) for row in rows]
@@ -435,6 +435,55 @@ def build_analysis(symbol: str) -> dict[str, Any]:
         "scores": scores,
         "series": enriched_rows,
     }
+
+
+def build_scan_item(symbol: str) -> dict[str, Any]:
+    analysis = build_analysis(symbol, include_news=False)
+    signal = analysis.get("signal") or {}
+    quote = analysis["quote"]
+    scores = analysis["scores"]
+    warnings = analysis.get("data_warnings") or []
+    return {
+        "symbol": analysis["symbol"],
+        "name": analysis.get("name", analysis["symbol"]),
+        "asset_type": analysis["asset_type"],
+        "exchange": analysis.get("exchange", ""),
+        "date": quote.get("date"),
+        "price": quote.get("price"),
+        "change_pct": quote.get("change_pct"),
+        "volume": quote.get("volume"),
+        "overall": scores.get("overall"),
+        "trend": scores.get("trend"),
+        "momentum": scores.get("momentum"),
+        "risk_control": scores.get("risk_control"),
+        "signal": {
+            "action": signal.get("action"),
+            "label": signal.get("label"),
+            "tone": signal.get("tone"),
+            "confidence": signal.get("confidence"),
+            "score": signal.get("score"),
+        },
+        "warnings": warnings,
+    }
+
+
+def scan_symbols(symbols: list[str]) -> list[dict[str, Any]]:
+    results = []
+    seen = set()
+    for raw_symbol in symbols[:30]:
+        try:
+            symbol = normalize_symbol(raw_symbol)
+        except ValueError as exc:
+            results.append({"symbol": raw_symbol, "error": str(exc)})
+            continue
+        if symbol in seen:
+            continue
+        seen.add(symbol)
+        try:
+            results.append(build_scan_item(symbol))
+        except Exception as exc:
+            results.append({"symbol": symbol, "error": str(exc)})
+    return results
 
 
 def build_data_warnings(symbol: str, meta: dict[str, Any], rows: list[dict[str, Any]]) -> list[str]:
@@ -978,6 +1027,13 @@ class Handler(BaseHTTPRequestHandler):
                 report = call_ai_report(analysis) or local_report(analysis)
                 report_id = save_report(symbol, analysis["asset_type"], report)
                 json_response(self, {"id": report_id, "report": report})
+                return
+            if self.path == "/api/scan":
+                symbols = payload.get("symbols") or []
+                if not isinstance(symbols, list):
+                    json_response(self, {"error": "symbols must be a list"}, status=400)
+                    return
+                json_response(self, {"results": scan_symbols([str(item) for item in symbols])})
                 return
             json_response(self, {"error": "Not found"}, status=404)
         except Exception as exc:

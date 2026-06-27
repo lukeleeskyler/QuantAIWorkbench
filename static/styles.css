@@ -126,6 +126,16 @@ input:focus {
   border-color: var(--accent);
 }
 
+select {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--ink);
+  padding: 9px 10px;
+  font: inherit;
+  min-width: 112px;
+}
+
 .examples {
   display: flex;
   flex-wrap: wrap;
@@ -353,6 +363,135 @@ input:focus {
 
 .dataWarnings[hidden] {
   display: none;
+}
+
+.scannerPanel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.scannerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scanSummary {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.scanResults {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.scanCard {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  padding: 12px;
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.scanCard:hover {
+  border-color: var(--accent);
+}
+
+.scanCard.bullish {
+  background: #f0fdf4;
+  border-color: rgba(21, 128, 61, 0.32);
+}
+
+.scanCard.bearish,
+.scanCard.error {
+  background: #fff5f5;
+  border-color: rgba(180, 35, 24, 0.32);
+}
+
+.scanHead,
+.scanFoot {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.scanHead strong {
+  display: block;
+  font-size: 15px;
+}
+
+.scanHead span,
+.scanFoot,
+.scanWarning,
+.scanCard p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.scanMetrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.scanMetrics span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.scanMetrics b {
+  display: block;
+  color: var(--ink);
+  font-size: 15px;
+  margin-top: 2px;
+}
+
+.scanMetrics b.positive {
+  color: var(--green);
+}
+
+.scanMetrics b.negative {
+  color: var(--red);
+}
+
+.signalChanges {
+  display: grid;
+  gap: 9px;
+}
+
+.compactHead {
+  padding-top: 2px;
+}
+
+.changeList {
+  display: grid;
+  gap: 8px;
+}
+
+.changeItem {
+  display: grid;
+  grid-template-columns: auto 80px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  padding: 9px;
+  font-size: 13px;
+  min-width: 0;
 }
 
 .workspace {
@@ -644,8 +783,18 @@ input:focus {
   .lowerGrid,
   .metrics,
   .timeframeSignals,
+  .scanResults,
   .marketBrief,
   .newsList {
     grid-template-columns: 1fr;
+  }
+
+  .scannerActions,
+  .changeItem {
+    grid-template-columns: 1fr;
+  }
+
+  .scannerActions {
+    display: grid;
   }
 }

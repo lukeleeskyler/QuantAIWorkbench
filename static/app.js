@@ -1,6 +1,7 @@
 let currentAnalysis = null;
 let priceChart = null;
 let indicatorChart = null;
+let latestScanResults = [];
 
 const $ = (id) => document.getElementById(id);
 
@@ -386,6 +387,163 @@ function renderWatchList() {
     : '<div class="historyItem"><p>暂无关注股票</p></div>';
 }
 
+function getSignalSnapshots() {
+  return JSON.parse(localStorage.getItem("quantSignalSnapshots") || "{}");
+}
+
+function saveSignalSnapshots(snapshots) {
+  localStorage.setItem("quantSignalSnapshots", JSON.stringify(snapshots));
+}
+
+function getSignalEvents() {
+  return JSON.parse(localStorage.getItem("quantSignalEvents") || "[]");
+}
+
+function saveSignalEvents(events) {
+  localStorage.setItem("quantSignalEvents", JSON.stringify(events.slice(0, 80)));
+}
+
+async function scanWatchlist() {
+  const symbols = getWatchSymbols();
+  if (!symbols.length) {
+    $("scanSummary").textContent = "先把股票加入关注列表，再开始扫描。";
+    $("scanResults").innerHTML = "";
+    $("signalChanges").innerHTML = "";
+    return;
+  }
+  setStatus("正在扫描关注列表...");
+  $("scanWatch").disabled = true;
+  $("scanWatchTop").disabled = true;
+  $("scanSummary").textContent = `正在扫描 ${symbols.length} 个标的...`;
+  try {
+    const data = await fetchJson("/api/scan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ symbols }),
+    });
+    latestScanResults = data.results || [];
+    recordSignalChanges(latestScanResults);
+    renderScanResults();
+    renderSignalChanges();
+    setStatus("自选股扫描完成");
+  } catch (error) {
+    $("scanSummary").textContent = error.message;
+    setStatus("自选股扫描失败");
+  } finally {
+    $("scanWatch").disabled = false;
+    $("scanWatchTop").disabled = false;
+  }
+}
+
+function recordSignalChanges(results) {
+  const snapshots = getSignalSnapshots();
+  const events = getSignalEvents();
+  const checkedAt = new Date().toISOString();
+  results.forEach((item) => {
+    if (item.error || !item.symbol || !item.signal) return;
+    const previous = snapshots[item.symbol];
+    const current = {
+      action: item.signal.action,
+      label: item.signal.label,
+      tone: item.signal.tone,
+      checked_at: checkedAt,
+    };
+    if (previous && previous.action !== current.action) {
+      events.unshift({
+        symbol: item.symbol,
+        previous_label: previous.label || "未知",
+        current_label: current.label || "未知",
+        tone: current.tone || "neutral",
+        price: item.price,
+        overall: item.overall,
+        checked_at: checkedAt,
+      });
+    }
+    snapshots[item.symbol] = current;
+  });
+  saveSignalSnapshots(snapshots);
+  saveSignalEvents(events);
+}
+
+function renderScanResults() {
+  const rows = [...latestScanResults].sort((a, b) => scanSortValue(b) - scanSortValue(a));
+  const valid = rows.filter((item) => !item.error);
+  const changed = getSignalEvents().filter((event) => rows.some((item) => item.symbol === event.symbol)).length;
+  $("scanSummary").textContent = valid.length
+    ? `已扫描 ${valid.length} 个标的 · ${changed ? `${changed} 条信号变化记录` : "暂无新变化"}`
+    : "没有可展示的扫描结果。";
+  $("scanResults").innerHTML = rows.length
+    ? rows.map(renderScanCard).join("")
+    : '<div class="emptyNews">关注股票后，一键扫描信号变化。</div>';
+}
+
+function scanSortValue(item) {
+  if (item.error) return -Infinity;
+  const sort = $("scanSort").value;
+  if (sort === "change") return Number(item.change_pct ?? -Infinity);
+  if (sort === "risk") return Number(item.risk_control ?? -Infinity);
+  if (sort === "signal") return Number(item.signal?.score ?? -Infinity);
+  return Number(item.overall ?? -Infinity);
+}
+
+function renderScanCard(item) {
+  if (item.error) {
+    return `
+      <article class="scanCard error">
+        <strong>${escapeHtml(item.symbol || "--")}</strong>
+        <p>${escapeHtml(item.error)}</p>
+      </article>
+    `;
+  }
+  const signal = item.signal || {};
+  const warning = toArray(item.warnings)[0];
+  return `
+    <article class="scanCard ${signal.tone || "neutral"}" data-scan-symbol="${escapeHtml(item.symbol)}">
+      <div class="scanHead">
+        <div>
+          <strong>${escapeHtml(item.symbol)}</strong>
+          <span>${escapeHtml(item.name || "")}</span>
+        </div>
+        <span class="signalBadge ${signal.tone || "neutral"}">${escapeHtml(signal.label || "--")}</span>
+      </div>
+      <div class="scanMetrics">
+        <span>价格 <b>${fmt(item.price, 2)}</b></span>
+        <span>涨跌 <b class="${pctClass(Number(item.change_pct))}">${fmt(item.change_pct, 2)}%</b></span>
+        <span>评分 <b>${fmt(item.overall, 1)}</b></span>
+        <span>风险 <b>${fmt(item.risk_control, 1)}</b></span>
+      </div>
+      <div class="scanFoot">
+        <span>${escapeHtml(item.date || "")}</span>
+        <span>置信度 ${fmt(signal.confidence, 1)}%</span>
+      </div>
+      ${warning ? `<div class="scanWarning">${escapeHtml(warning)}</div>` : ""}
+    </article>
+  `;
+}
+
+function renderSignalChanges() {
+  const events = getSignalEvents().slice(0, 8);
+  $("signalChanges").innerHTML = events.length
+    ? `
+      <div class="panelHead compactHead"><h3>信号变化</h3><div class="muted">最近 ${events.length} 条</div></div>
+      <div class="changeList">
+        ${events
+          .map(
+            (event) => `
+              <div class="changeItem">
+                <span class="signalBadge ${event.tone || "neutral"}">${escapeHtml(event.current_label)}</span>
+                <strong>${escapeHtml(event.symbol)}</strong>
+                <span>${escapeHtml(event.previous_label)} → ${escapeHtml(event.current_label)}</span>
+                <span class="muted">${new Date(event.checked_at).toLocaleString()}</span>
+              </div>
+            `,
+          )
+          .join("")}
+      </div>
+    `
+    : "";
+}
+
 async function loadReports() {
   try {
     const data = await fetchJson("/api/reports");
@@ -422,7 +580,9 @@ document.querySelectorAll("[data-symbol]").forEach((button) => {
 $("generateReport").addEventListener("click", generateReport);
 $("refreshReports").addEventListener("click", loadReports);
 $("addWatch").addEventListener("click", addWatchSymbol);
-$("refreshWatch").addEventListener("click", renderWatchList);
+$("scanWatch").addEventListener("click", scanWatchlist);
+$("scanWatchTop").addEventListener("click", scanWatchlist);
+$("scanSort").addEventListener("change", renderScanResults);
 $("watchList").addEventListener("click", (event) => {
   const watchSymbol = event.target.closest("[data-watch-symbol]")?.dataset.watchSymbol;
   const removeSymbol = event.target.closest("[data-remove-symbol]")?.dataset.removeSymbol;
@@ -432,6 +592,12 @@ $("watchList").addEventListener("click", (event) => {
   }
   if (removeSymbol) removeWatchSymbol(removeSymbol);
 });
+$("scanResults").addEventListener("click", (event) => {
+  const symbol = event.target.closest("[data-scan-symbol]")?.dataset.scanSymbol;
+  if (!symbol) return;
+  $("symbolInput").value = symbol;
+  analyze(symbol);
+});
 window.addEventListener("resize", () => {
   priceChart?.resize();
   indicatorChart?.resize();
@@ -439,4 +605,5 @@ window.addEventListener("resize", () => {
 
 loadReports();
 renderWatchList();
+renderSignalChanges();
 analyze($("symbolInput").value);
