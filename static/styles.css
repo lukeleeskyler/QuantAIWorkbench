@@ -112,6 +112,12 @@ button:disabled {
   gap: 8px;
 }
 
+.searchTools {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 input {
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -159,6 +165,48 @@ select {
 
 .fullButton {
   width: 100%;
+}
+
+.symbolSuggestions {
+  display: grid;
+  gap: 8px;
+}
+
+.suggestionItem {
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 10px;
+  display: grid;
+  gap: 3px;
+  text-align: left;
+}
+
+.suggestionItem:hover {
+  background: #fff;
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+.suggestionItem strong {
+  font-size: 14px;
+}
+
+.suggestionItem span,
+.suggestionItem em,
+.suggestionEmpty {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.45;
+}
+
+.suggestionEmpty {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
 }
 
 .history {
@@ -363,6 +411,93 @@ select {
 
 .dataWarnings[hidden] {
   display: none;
+}
+
+.dataHealth {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 13px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 11px;
+  min-width: 0;
+}
+
+.dataHealth[hidden] {
+  display: none;
+}
+
+.healthHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.healthHead strong {
+  color: var(--ink);
+  margin-right: 8px;
+}
+
+.healthStatus {
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: #eef2ff;
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.healthStatus.ok {
+  background: #f0fdf4;
+  color: var(--green);
+}
+
+.healthStatus.stale,
+.healthStatus.limited {
+  background: #fff8eb;
+  color: #7a4d00;
+}
+
+.healthStatus.mismatch {
+  background: #fff5f5;
+  color: var(--red);
+}
+
+.healthGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.healthGrid div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  padding: 10px;
+  min-width: 0;
+}
+
+.healthGrid span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.healthGrid b {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.healthActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .scannerPanel {
@@ -784,6 +919,7 @@ select {
   .metrics,
   .timeframeSignals,
   .scanResults,
+  .healthGrid,
   .marketBrief,
   .newsList {
     grid-template-columns: 1fr;

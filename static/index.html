@@ -24,7 +24,11 @@
             <input id="symbolInput" autocomplete="off" value="AAPL" placeholder="AAPL / 002859 / 0700.HK / BTC-USD" />
             <button type="submit">分析</button>
           </div>
-          <button type="button" id="addWatch" class="ghost fullButton">加入关注</button>
+          <div class="searchTools">
+            <button type="button" id="addWatch" class="ghost">加入关注</button>
+            <button type="button" id="searchSymbol" class="ghost">查找代码</button>
+          </div>
+          <div id="symbolSuggestions" class="symbolSuggestions" hidden></div>
         </form>
 
         <div class="examples">
@@ -85,6 +89,8 @@
         </section>
 
         <section id="dataWarnings" class="dataWarnings" hidden></section>
+
+        <section id="dataHealth" class="dataHealth" hidden></section>
 
         <section class="scannerPanel">
           <div class="panelHead">

@@ -188,6 +188,34 @@ def fetch_yahoo_news(symbol: str, limit: int = 8) -> list[dict[str, Any]]:
     return news_items[:limit]
 
 
+def fetch_yahoo_search(query: str, limit: int = 8) -> list[dict[str, Any]]:
+    encoded = urllib.parse.quote(query.strip(), safe="")
+    if not encoded:
+        return []
+    url = (
+        "https://query2.finance.yahoo.com/v1/finance/search"
+        f"?q={encoded}&quotesCount={limit}&newsCount=0&enableFuzzyQuery=true"
+    )
+    req = urllib.request.Request(url, headers={"User-Agent": "QuantAIWorkbench/0.1"})
+    with urllib.request.urlopen(req, timeout=12) as resp:
+        payload = json.loads(resp.read().decode("utf-8"))
+    results = []
+    for item in payload.get("quotes") or []:
+        symbol = item.get("symbol")
+        if not symbol:
+            continue
+        results.append(
+            {
+                "symbol": symbol,
+                "name": item.get("longname") or item.get("shortname") or item.get("name") or symbol,
+                "exchange": item.get("exchDisp") or item.get("exchange") or "",
+                "type": item.get("quoteType") or item.get("typeDisp") or "",
+                "score": item.get("score"),
+            }
+        )
+    return results[:limit]
+
+
 def clean_series(raw: dict[str, Any]) -> dict[str, Any]:
     timestamps = raw.get("timestamp") or []
     quote = ((raw.get("indicators") or {}).get("quote") or [{}])[0]
@@ -402,7 +430,8 @@ def build_analysis(symbol: str, include_news: bool = True) -> dict[str, Any]:
             }
         )
     meta = cleaned["meta"]
-    warnings = build_data_warnings(symbol, meta, rows)
+    data_health = build_data_health(symbol, meta, rows)
+    warnings = build_data_warnings(data_health)
     return {
         "symbol": symbol,
         "asset_type": detect_asset_type(symbol),
@@ -410,6 +439,7 @@ def build_analysis(symbol: str, include_news: bool = True) -> dict[str, Any]:
         "currency": meta.get("currency") or "",
         "exchange": meta.get("exchangeName") or meta.get("fullExchangeName") or "",
         "data_warnings": warnings,
+        "data_health": data_health,
         "quote": {
             "date": latest["date"],
             "price": close,
@@ -443,6 +473,7 @@ def build_scan_item(symbol: str) -> dict[str, Any]:
     quote = analysis["quote"]
     scores = analysis["scores"]
     warnings = analysis.get("data_warnings") or []
+    health = analysis.get("data_health") or {}
     return {
         "symbol": analysis["symbol"],
         "name": analysis.get("name", analysis["symbol"]),
@@ -464,6 +495,8 @@ def build_scan_item(symbol: str) -> dict[str, Any]:
             "score": signal.get("score"),
         },
         "warnings": warnings,
+        "data_status": health.get("status"),
+        "data_status_label": health.get("status_label"),
     }
 
 
@@ -486,16 +519,20 @@ def scan_symbols(symbols: list[str]) -> list[dict[str, Any]]:
     return results
 
 
-def build_data_warnings(symbol: str, meta: dict[str, Any], rows: list[dict[str, Any]]) -> list[str]:
+def build_data_health(symbol: str, meta: dict[str, Any], rows: list[dict[str, Any]]) -> dict[str, Any]:
     warnings = []
     exchange = meta.get("exchangeName") or meta.get("fullExchangeName") or ""
     name = meta.get("longName") or meta.get("shortName") or symbol
+    suggestions = []
     if symbol.endswith("-USD") and exchange == "CCC":
+        base_symbol = symbol.removesuffix("-USD")
+        suggestions.append({"symbol": base_symbol, "reason": "去掉 -USD 后按股票代码重试"})
         warnings.append(
-            f"{symbol} 被行情源识别为加密资产/代币：{name}。如果要查询美股股票，请去掉 -USD，例如输入 SPCX。"
+            f"{symbol} 被行情源识别为加密资产/代币：{name}。如果要查询美股股票，请去掉 -USD，例如输入 {base_symbol}。"
         )
     if len(rows) < 30:
         warnings.append("该标的历史行情少于 30 根，K 线会展示已有数据，MA20/MA60/RSI/MACD 等指标可能为空或不稳定。")
+    age_days = None
     try:
         last_date = datetime.strptime(rows[-1]["date"], "%Y-%m-%d").date()
         age_days = (datetime.now(timezone.utc).date() - last_date).days
@@ -503,6 +540,37 @@ def build_data_warnings(symbol: str, meta: dict[str, Any], rows: list[dict[str, 
             warnings.append(f"行情源最后一根 K 线停留在 {rows[-1]['date']}，可能是代码停牌、退市、映射错误或数据源未更新。")
     except Exception:
         pass
+    status = "ok"
+    status_label = "数据正常"
+    if any("被行情源识别为加密资产/代币" in item for item in warnings):
+        status = "mismatch"
+        status_label = "疑似代码映射错误"
+    elif age_days is not None and age_days > 7:
+        status = "stale"
+        status_label = "数据可能过期"
+    elif len(rows) < 30:
+        status = "limited"
+        status_label = "历史数据较短"
+    return {
+        "provider": "Yahoo Finance",
+        "symbol": symbol,
+        "source_name": name,
+        "exchange": exchange,
+        "instrument_type": meta.get("instrumentType") or "",
+        "currency": meta.get("currency") or "",
+        "first_date": rows[0]["date"] if rows else "",
+        "last_date": rows[-1]["date"] if rows else "",
+        "bar_count": len(rows),
+        "age_days": age_days,
+        "status": status,
+        "status_label": status_label,
+        "warnings": warnings,
+        "suggestions": suggestions,
+    }
+
+
+def build_data_warnings(health: dict[str, Any]) -> list[str]:
+    return list(health.get("warnings") or [])
     return warnings
 
 
@@ -1011,6 +1079,11 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if path == "/api/reports":
                 json_response(self, {"reports": list_reports()})
+                return
+            if path == "/api/search":
+                query = urllib.parse.parse_qs(parsed.query)
+                q = (query.get("q") or [""])[0]
+                json_response(self, {"results": fetch_yahoo_search(q)})
                 return
             self.serve_static(path)
         except Exception as exc:

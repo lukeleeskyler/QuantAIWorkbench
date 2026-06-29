@@ -66,6 +66,7 @@ function renderAnalysis(data) {
   $("volume").textContent = fmtCompact(data.quote.volume);
   $("overall").textContent = fmt(data.scores.overall, 1);
   renderDataWarnings(data.data_warnings || []);
+  renderDataHealth(data.data_health || {});
   renderSignal(data.signal);
   renderTimeframeSignals(data.timeframe_signals || []);
   $("quoteDate").textContent = data.quote.date;
@@ -83,6 +84,36 @@ function renderDataWarnings(warnings) {
   const rows = toArray(warnings);
   $("dataWarnings").hidden = !rows.length;
   $("dataWarnings").innerHTML = rows.map((item) => `<div>${escapeHtml(item)}</div>`).join("");
+}
+
+function renderDataHealth(health) {
+  $("dataHealth").hidden = !health || !health.status;
+  if ($("dataHealth").hidden) return;
+  const suggestions = toArray(health.suggestions)
+    .map(
+      (item) => `
+        <button class="ghost healthSuggestion" data-suggest-symbol="${escapeHtml(item.symbol || "")}">
+          改查 ${escapeHtml(item.symbol || "")}
+        </button>
+      `,
+    )
+    .join("");
+  $("dataHealth").innerHTML = `
+    <div class="healthHead">
+      <div>
+        <strong>数据健康</strong>
+        <span class="healthStatus ${escapeHtml(health.status || "ok")}">${escapeHtml(health.status_label || "数据正常")}</span>
+      </div>
+      <span>${escapeHtml(health.provider || "Yahoo Finance")}</span>
+    </div>
+    <div class="healthGrid">
+      <div><span>源名称</span><b>${escapeHtml(health.source_name || "--")}</b></div>
+      <div><span>交易所</span><b>${escapeHtml(health.exchange || "--")}</b></div>
+      <div><span>最后 K 线</span><b>${escapeHtml(health.last_date || "--")}</b></div>
+      <div><span>样本数</span><b>${fmt(health.bar_count, 0)}</b></div>
+    </div>
+    ${suggestions ? `<div class="healthActions">${suggestions}</div>` : ""}
+  `;
 }
 
 function renderSignal(signal) {
@@ -107,6 +138,36 @@ function renderSignal(signal) {
     </div>
     <div class="muted">${escapeHtml(signal.disclaimer || "仅供研究观察。")}</div>
   `;
+}
+
+async function searchSymbols() {
+  const query = normalizedInputSymbol();
+  if (!query) return;
+  $("symbolSuggestions").hidden = false;
+  $("symbolSuggestions").innerHTML = '<div class="suggestionEmpty">正在查找候选代码...</div>';
+  try {
+    const data = await fetchJson(`/api/search?q=${encodeURIComponent(query)}`);
+    renderSymbolSuggestions(data.results || []);
+  } catch (error) {
+    $("symbolSuggestions").innerHTML = `<div class="suggestionEmpty">${escapeHtml(error.message)}</div>`;
+  }
+}
+
+function renderSymbolSuggestions(results) {
+  $("symbolSuggestions").hidden = false;
+  $("symbolSuggestions").innerHTML = results.length
+    ? results
+        .map(
+          (item) => `
+            <button type="button" class="suggestionItem" data-suggestion-symbol="${escapeHtml(item.symbol)}">
+              <strong>${escapeHtml(item.symbol)}</strong>
+              <span>${escapeHtml(item.name || "")}</span>
+              <em>${escapeHtml([item.exchange, item.type].filter(Boolean).join(" · "))}</em>
+            </button>
+          `,
+        )
+        .join("")
+    : '<div class="suggestionEmpty">没有找到候选代码。</div>';
 }
 
 function renderTimeframeSignals(signals) {
@@ -580,9 +641,23 @@ document.querySelectorAll("[data-symbol]").forEach((button) => {
 $("generateReport").addEventListener("click", generateReport);
 $("refreshReports").addEventListener("click", loadReports);
 $("addWatch").addEventListener("click", addWatchSymbol);
+$("searchSymbol").addEventListener("click", searchSymbols);
 $("scanWatch").addEventListener("click", scanWatchlist);
 $("scanWatchTop").addEventListener("click", scanWatchlist);
 $("scanSort").addEventListener("change", renderScanResults);
+$("symbolSuggestions").addEventListener("click", (event) => {
+  const symbol = event.target.closest("[data-suggestion-symbol]")?.dataset.suggestionSymbol;
+  if (!symbol) return;
+  $("symbolInput").value = symbol;
+  $("symbolSuggestions").hidden = true;
+  analyze(symbol);
+});
+$("dataHealth").addEventListener("click", (event) => {
+  const symbol = event.target.closest("[data-suggest-symbol]")?.dataset.suggestSymbol;
+  if (!symbol) return;
+  $("symbolInput").value = symbol;
+  analyze(symbol);
+});
 $("watchList").addEventListener("click", (event) => {
   const watchSymbol = event.target.closest("[data-watch-symbol]")?.dataset.watchSymbol;
   const removeSymbol = event.target.closest("[data-remove-symbol]")?.dataset.removeSymbol;
