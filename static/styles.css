@@ -810,6 +810,23 @@ select {
   text-align: center;
 }
 
+.reportMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sourceBadge {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 6px 9px;
+}
+
 .newsList {
   display: grid;
   gap: 10px;

@@ -2,6 +2,7 @@ let currentAnalysis = null;
 let priceChart = null;
 let indicatorChart = null;
 let latestScanResults = [];
+let aiStatus = { configured: false, provider: "local_rules", model: "" };
 
 const $ = (id) => document.getElementById(id);
 
@@ -33,6 +34,17 @@ async function fetchJson(url, options) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
   return data;
+}
+
+async function loadAiStatus() {
+  try {
+    aiStatus = await fetchJson("/api/ai-status");
+  } catch {
+    aiStatus = { configured: false, provider: "local_rules", model: "" };
+  }
+  $("aiStatus").textContent = aiStatus.configured
+    ? `${providerLabel(aiStatus.provider)} 已配置 · ${aiStatus.model}`
+    : "未配置 API Key · 使用本地规则";
 }
 
 async function analyze(symbol) {
@@ -331,7 +343,12 @@ async function generateReport() {
     });
     renderReport(data.report);
     await loadReports();
-    setStatus(`报告已保存 #${data.id}`);
+    if (data.ai?.used) {
+      setStatus(`${providerLabel(data.ai.provider)} 报告已保存 #${data.id}`);
+    } else {
+      const detail = data.ai?.error ? ` · ${data.ai.error}` : "";
+      setStatus(`本地规则报告已保存 #${data.id}${detail}`);
+    }
   } catch (error) {
     $("reportBody").className = "reportBody empty";
     $("reportBody").textContent = error.message;
@@ -345,9 +362,13 @@ function renderReport(report) {
   const stanceLabel = { bullish: "偏多", neutral: "中性", bearish: "偏空" }[report.stance] || report.stance;
   const support = toArray(report.key_levels?.support);
   const resistance = toArray(report.key_levels?.resistance);
+  const source = report.source === "ai" ? providerLabel(report.provider || aiStatus.provider) : "本地规则";
   $("reportBody").className = "reportBody";
   $("reportBody").innerHTML = `
-    <span class="stance ${report.stance || "neutral"}">${stanceLabel}</span>
+    <div class="reportMeta">
+      <span class="stance ${report.stance || "neutral"}">${stanceLabel}</span>
+      <span class="sourceBadge">${escapeHtml(source)}</span>
+    </div>
     <div><h4>结论</h4><div>${escapeHtml(report.summary || "")}</div></div>
     ${renderList("机会", report.opportunities)}
     ${renderList("风险", report.risks)}
@@ -357,6 +378,15 @@ function renderReport(report) {
     ${renderList("观察计划", report.watch_plan)}
     <div class="muted">${escapeHtml(report.disclaimer || "仅供研究和信息分析，不构成投资建议。")}</div>
   `;
+}
+
+function providerLabel(provider) {
+  return {
+    deepseek: "DeepSeek",
+    openrouter: "OpenRouter",
+    openai: "OpenAI",
+    local_rules: "本地规则",
+  }[provider] || provider || "AI";
 }
 
 function renderReportSignal(signal) {
@@ -679,6 +709,7 @@ window.addEventListener("resize", () => {
 });
 
 loadReports();
+loadAiStatus();
 renderWatchList();
 renderSignalChanges();
 analyze($("symbolInput").value);

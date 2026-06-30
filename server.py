@@ -869,23 +869,86 @@ def local_report(analysis: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def call_ai_report(analysis: dict[str, Any]) -> dict[str, Any] | None:
-    api_key = (
-        os.environ.get("OPENAI_API_KEY")
-        or os.environ.get("DEEPSEEK_API_KEY")
-        or os.environ.get("OPENROUTER_API_KEY")
-    )
-    if not api_key:
-        return None
-    base_url = os.environ.get("OPENAI_BASE_URL")
-    model = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
-    if os.environ.get("DEEPSEEK_API_KEY") and not os.environ.get("OPENAI_API_KEY"):
-        base_url = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
-        model = os.environ.get("DEEPSEEK_MODEL", "deepseek-chat")
-    if os.environ.get("OPENROUTER_API_KEY"):
-        base_url = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
-        model = os.environ.get("OPENROUTER_MODEL", model)
-    base_url = (base_url or "https://api.openai.com/v1").rstrip("/")
+def get_ai_config(include_secret: bool = False) -> dict[str, Any]:
+    providers = [
+        (
+            "deepseek",
+            "DEEPSEEK_API_KEY",
+            os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1"),
+            os.environ.get("DEEPSEEK_MODEL", "deepseek-chat"),
+        ),
+        (
+            "openrouter",
+            "OPENROUTER_API_KEY",
+            os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
+            os.environ.get("OPENROUTER_MODEL", "openai/gpt-4.1-mini"),
+        ),
+        (
+            "openai",
+            "OPENAI_API_KEY",
+            os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+            os.environ.get("OPENAI_MODEL", "gpt-4.1-mini"),
+        ),
+    ]
+    for provider, key_name, base_url, model in providers:
+        api_key = os.environ.get(key_name)
+        if not api_key:
+            continue
+        config = {
+            "configured": True,
+            "provider": provider,
+            "key_name": key_name,
+            "base_url": base_url.rstrip("/"),
+            "model": model,
+        }
+        if include_secret:
+            config["api_key"] = api_key
+        return config
+    return {
+        "configured": False,
+        "provider": "local_rules",
+        "base_url": "",
+        "model": "",
+    }
+
+
+def public_ai_config() -> dict[str, Any]:
+    config = get_ai_config(False)
+    return {
+        "configured": config["configured"],
+        "provider": config["provider"],
+        "base_url": config["base_url"],
+        "model": config["model"],
+    }
+
+
+def format_ai_error(exc: Exception) -> str:
+    if isinstance(exc, urllib.error.HTTPError):
+        detail = exc.read().decode("utf-8", errors="replace")
+        try:
+            parsed = json.loads(detail)
+            message = parsed.get("error", {}).get("message") or parsed.get("message") or detail
+        except json.JSONDecodeError:
+            message = detail
+        return f"HTTP {exc.code}: {str(message)[:240]}"
+    if isinstance(exc, urllib.error.URLError):
+        return f"连接失败: {exc.reason}"
+    return str(exc)[:240]
+
+
+def call_ai_report(analysis: dict[str, Any]) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    config = get_ai_config(True)
+    meta = {
+        "configured": config["configured"],
+        "used": False,
+        "provider": config["provider"],
+        "model": config["model"],
+    }
+    if not config["configured"]:
+        meta["error"] = "未配置 API Key，已使用本地规则生成报告。"
+        return None, meta
+    base_url = config["base_url"]
+    model = config["model"]
     prompt = {
         "symbol": analysis["symbol"],
         "asset_type": analysis["asset_type"],
@@ -917,7 +980,7 @@ def call_ai_report(analysis: dict[str, Any]) -> dict[str, Any] | None:
         data=json.dumps(body).encode("utf-8"),
         method="POST",
         headers={
-            "Authorization": f"Bearer {api_key}",
+            "Authorization": f"Bearer {config['api_key']}",
             "Content-Type": "application/json",
             "User-Agent": "QuantAIWorkbench/0.1",
         },
@@ -928,9 +991,14 @@ def call_ai_report(analysis: dict[str, Any]) -> dict[str, Any] | None:
         content = payload["choices"][0]["message"]["content"]
         parsed = json.loads(extract_json(content))
         parsed["source"] = "ai"
-        return normalize_report(parsed, analysis)
-    except Exception:
-        return None
+        parsed["provider"] = config["provider"]
+        parsed["model"] = config["model"]
+        report = normalize_report(parsed, analysis)
+        meta["used"] = True
+        return report, meta
+    except Exception as exc:
+        meta["error"] = format_ai_error(exc)
+        return None, meta
 
 
 def coerce_text_list(value: Any) -> list[str]:
@@ -986,6 +1054,8 @@ def normalize_report(report: dict[str, Any], analysis: dict[str, Any]) -> dict[s
     key_levels = report.get("key_levels") if isinstance(report.get("key_levels"), dict) else {}
     normalized = {
         "source": report.get("source", "ai"),
+        "provider": report.get("provider", ""),
+        "model": report.get("model", ""),
         "stance": stance,
         "summary": str(report.get("summary") or fallback["summary"]),
         "opportunities": coerce_text_list(report.get("opportunities")) or fallback["opportunities"],
@@ -1085,6 +1155,9 @@ class Handler(BaseHTTPRequestHandler):
                 q = (query.get("q") or [""])[0]
                 json_response(self, {"results": fetch_yahoo_search(q)})
                 return
+            if path == "/api/ai-status":
+                json_response(self, public_ai_config())
+                return
             self.serve_static(path)
         except Exception as exc:
             traceback.print_exc()
@@ -1097,9 +1170,11 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/report":
                 symbol = normalize_symbol(payload.get("symbol", ""))
                 analysis = payload.get("analysis") or build_analysis(symbol)
-                report = call_ai_report(analysis) or local_report(analysis)
+                report, ai_meta = call_ai_report(analysis)
+                if report is None:
+                    report = local_report(analysis)
                 report_id = save_report(symbol, analysis["asset_type"], report)
-                json_response(self, {"id": report_id, "report": report})
+                json_response(self, {"id": report_id, "report": report, "ai": ai_meta})
                 return
             if self.path == "/api/scan":
                 symbols = payload.get("symbols") or []
